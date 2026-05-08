@@ -13,9 +13,10 @@ env/
 *.sqlite
 *.sqlite3
 
-# Storage (keep folder, ignore artifacts)
+# Storage (keep folders, ignore artifacts)
 storage/screenshots/*
 !storage/screenshots/.gitkeep
+storage/llm_cache/
 
 # Frontend (Phase 7)
 node_modules/

@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from ..classifier.llm_classifier import enrich as llm_enrich
 from ..crawler.playwright_crawler import crawl_url
 from ..db.database import SessionLocal, get_db
 from ..db.models import DetectedPattern, Scan, ScanStatus, Severity
@@ -88,6 +89,11 @@ async def _run_crawl(scan_id: str, url: str) -> None:
 
             extracted = extract_page(result.html, page_title=result.title)
             detections = run_detectors(extracted)
+            try:
+                llm_additions = await llm_enrich(extracted, detections)
+                detections.extend(llm_additions)
+            except Exception as e:  # never let LLM break the scan
+                scan.error_message = (scan.error_message or "") + f" [llm warning: {type(e).__name__}: {e}]"
 
             scan.final_url = result.final_url
             scan.page_title = result.title
