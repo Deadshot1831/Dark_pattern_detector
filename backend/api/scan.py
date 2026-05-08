@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session
 
 from ..crawler.playwright_crawler import crawl_url
 from ..db.database import SessionLocal, get_db
-from ..db.models import Scan, ScanStatus
+from ..db.models import DetectedPattern, Scan, ScanStatus, Severity
+from ..detectors.base import overall_severity
+from ..detectors.registry import run_all as run_detectors
 from ..extractor.section_extractor import extract as extract_page
 from ..utils.url_validator import InvalidURLError, validate_url
 
@@ -34,6 +36,20 @@ class ScanResponse(BaseModel):
     error_message: Optional[str] = None
     full_page_screenshot_url: Optional[str] = None
     viewport_screenshot_url: Optional[str] = None
+    total_patterns_found: Optional[int] = None
+    overall_severity: Optional[str] = None
+
+
+class DetectionView(BaseModel):
+    id: str
+    pattern_type: str
+    evidence_text: str
+    evidence_selector: Optional[str] = None
+    confidence: float
+    severity: str
+    explanation: str
+    suggested_fix: str
+    method: str
 
 
 def _to_response(scan: Scan) -> ScanResponse:
@@ -49,6 +65,8 @@ def _to_response(scan: Scan) -> ScanResponse:
         error_message=scan.error_message,
         full_page_screenshot_url=f"{base}/full_page" if scan.full_page_screenshot else None,
         viewport_screenshot_url=f"{base}/viewport" if scan.viewport_screenshot else None,
+        total_patterns_found=scan.total_patterns_found,
+        overall_severity=scan.overall_severity.value if scan.overall_severity else None,
     )
 
 
@@ -69,6 +87,7 @@ async def _run_crawl(scan_id: str, url: str) -> None:
             html_path.write_text(result.html, encoding="utf-8")
 
             extracted = extract_page(result.html, page_title=result.title)
+            detections = run_detectors(extracted)
 
             scan.final_url = result.final_url
             scan.page_title = result.title
@@ -77,6 +96,20 @@ async def _run_crawl(scan_id: str, url: str) -> None:
             scan.full_page_screenshot = str(result.full_page_screenshot.relative_to(STORAGE_DIR))
             scan.viewport_screenshot = str(result.viewport_screenshot.relative_to(STORAGE_DIR))
             scan.extracted_data = json.dumps(extracted.to_dict())
+            scan.total_patterns_found = len(detections)
+            scan.overall_severity = Severity(overall_severity(detections))
+            for d in detections:
+                db.add(DetectedPattern(
+                    scan_id=scan.id,
+                    pattern_type=d.pattern_type,
+                    evidence_text=d.evidence_text,
+                    evidence_selector=d.evidence_selector or None,
+                    confidence=d.confidence,
+                    severity=Severity(d.severity),
+                    explanation=d.explanation,
+                    suggested_fix=d.suggested_fix,
+                    method=d.method,
+                ))
             scan.status = ScanStatus.completed
             scan.completed_at = datetime.utcnow()
         except Exception as e:
@@ -114,6 +147,27 @@ def get_scan(scan_id: str, db: Session = Depends(get_db)) -> ScanResponse:
     if scan is None:
         raise HTTPException(status_code=404, detail="Scan not found")
     return _to_response(scan)
+
+
+@router.get("/scan/{scan_id}/detections", response_model=List[DetectionView])
+def get_detections(scan_id: str, db: Session = Depends(get_db)) -> List[DetectionView]:
+    scan = db.get(Scan, scan_id)
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+    return [
+        DetectionView(
+            id=d.id,
+            pattern_type=d.pattern_type,
+            evidence_text=d.evidence_text,
+            evidence_selector=d.evidence_selector,
+            confidence=d.confidence,
+            severity=d.severity.value,
+            explanation=d.explanation,
+            suggested_fix=d.suggested_fix,
+            method=d.method,
+        )
+        for d in scan.detections
+    ]
 
 
 @router.get("/scan/{scan_id}/extracted")
