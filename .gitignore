@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+.env.local
+
+# DB
+*.db
+*.sqlite
+*.sqlite3
+
+# Storage (keep folder, ignore artifacts)
+storage/screenshots/*
+!storage/screenshots/.gitkeep
+
+# Frontend (Phase 7)
+node_modules/
+.next/
+build/
+dist/
+out/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+*.swp
