@@ -1,6 +1,7 @@
+import json
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 from ..crawler.playwright_crawler import crawl_url
 from ..db.database import SessionLocal, get_db
 from ..db.models import Scan, ScanStatus
+from ..extractor.section_extractor import extract as extract_page
 from ..utils.url_validator import InvalidURLError, validate_url
 
 router = APIRouter()
@@ -66,12 +68,15 @@ async def _run_crawl(scan_id: str, url: str) -> None:
             html_path = screenshot_dir / "page.html"
             html_path.write_text(result.html, encoding="utf-8")
 
+            extracted = extract_page(result.html, page_title=result.title)
+
             scan.final_url = result.final_url
             scan.page_title = result.title
             scan.html_length = len(result.html)
             scan.html_path = str(html_path.relative_to(STORAGE_DIR))
             scan.full_page_screenshot = str(result.full_page_screenshot.relative_to(STORAGE_DIR))
             scan.viewport_screenshot = str(result.viewport_screenshot.relative_to(STORAGE_DIR))
+            scan.extracted_data = json.dumps(extracted.to_dict())
             scan.status = ScanStatus.completed
             scan.completed_at = datetime.utcnow()
         except Exception as e:
@@ -109,6 +114,16 @@ def get_scan(scan_id: str, db: Session = Depends(get_db)) -> ScanResponse:
     if scan is None:
         raise HTTPException(status_code=404, detail="Scan not found")
     return _to_response(scan)
+
+
+@router.get("/scan/{scan_id}/extracted")
+def get_extracted(scan_id: str, db: Session = Depends(get_db)) -> dict[str, Any]:
+    scan = db.get(Scan, scan_id)
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+    if not scan.extracted_data:
+        raise HTTPException(status_code=404, detail="Extraction not available yet")
+    return json.loads(scan.extracted_data)
 
 
 @router.get("/scan/{scan_id}/screenshot/{kind}")

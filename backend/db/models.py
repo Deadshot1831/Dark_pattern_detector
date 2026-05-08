@@ -35,3 +35,4 @@ class Scan(Base):
     html_path = Column(String, nullable=True)
     full_page_screenshot = Column(String, nullable=True)
     viewport_screenshot = Column(String, nullable=True)
+    extracted_data = Column(Text, nullable=True)  # JSON blob from extractor

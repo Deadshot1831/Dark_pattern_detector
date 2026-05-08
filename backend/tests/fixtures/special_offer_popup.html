@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>BrandCo - Cosy Bedding</title>
+<style>
+  body { font-family: sans-serif; margin: 0; padding: 0; }
+  header nav a { margin: 0 12px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; }
+  .modal-popup { background: #d6e8ff; border-radius: 16px; padding: 40px; max-width: 520px; text-align: center; position: relative; }
+  .modal-popup .close-btn { position: absolute; top: -18px; right: -18px; width: 38px; height: 38px; border-radius: 50%; background: #2a86ff; color: white; border: none; font-size: 22px; }
+  .modal-popup h2 { font-weight: 900; font-size: 28px; margin: 18px 0 24px; }
+  .modal-popup form { display: flex; align-items: center; gap: 8px; }
+  .modal-popup input[type=email] { flex: 1; padding: 12px 8px; border: none; border-bottom: 2px solid #1a1a1a; background: transparent; font-size: 16px; }
+  .modal-popup .submit-btn { width: 56px; height: 56px; border-radius: 50%; background: #ff7a00; color: white; border: none; font-size: 22px; }
+  .modal-popup .decline-link { display: block; margin-top: 18px; font-size: 13px; color: #666; font-style: italic; text-decoration: none; }
+  .cookie-banner { position: fixed; bottom: 0; left: 0; right: 0; background: #222; color: white; padding: 14px; display: flex; gap: 12px; align-items: center; }
+  .cookie-banner .accept-all { background: #25c25b; color: white; padding: 10px 22px; border: none; font-weight: bold; font-size: 14px; }
+  .cookie-banner .reject-all { background: transparent; color: #888; padding: 4px 8px; border: none; font-size: 11px; text-decoration: underline; }
+  .countdown { background: #ffeb3b; padding: 8px; text-align: center; font-weight: bold; }
+</style>
+</head>
+<body>
+<header>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/shop">Shop</a>
+    <a href="/about">About</a>
+  </nav>
+</header>
+
+<main>
+  <div class="countdown" id="deal-timer">⏰ Deal ends in 04:59:12 — only 2 left in stock!</div>
+
+  <h1>Cosy Linen Duvet</h1>
+  <p>A premium bedding set, perfectly soft for autumn nights.</p>
+
+  <form id="checkout-form" action="/cart" method="post">
+    <label><input type="checkbox" name="newsletter" value="yes" checked /> Sign me up for weekly marketing emails</label>
+    <label><input type="checkbox" name="warranty" value="yes" checked /> Add 2-year extended warranty (+$19.99)</label>
+    <label><input type="checkbox" name="terms" /> I accept the terms</label>
+    <button type="submit">Add to cart</button>
+  </form>
+</main>
+
+<div class="modal-overlay" id="popup-overlay" role="dialog" aria-modal="true">
+  <div class="modal-popup">
+    <button class="close-btn" aria-label="Close">×</button>
+    <div class="badge">SPECIAL OFFER</div>
+    <h2>JOIN OUR MAILING LIST FOR 15% OFF YOUR FIRST ORDER!</h2>
+    <form>
+      <input type="email" placeholder="enter your email" />
+      <button class="submit-btn" type="submit">→</button>
+    </form>
+    <a href="#" class="decline-link">No thanks, I don't like saving money</a>
+  </div>
+</div>
+
+<div class="cookie-banner" id="cookie-consent">
+  <span>We use cookies to personalise content and analyse our traffic. By using our site you agree to our cookie policy.</span>
+  <button class="accept-all">Accept All</button>
+  <button class="reject-all">reject</button>
+</div>
+</body>
+</html>
