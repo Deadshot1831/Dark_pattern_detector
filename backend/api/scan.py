@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
@@ -18,6 +18,9 @@ from ..db.models import DetectedPattern, Scan, ScanStatus, Severity
 from ..detectors.base import overall_severity
 from ..detectors.registry import run_all as run_detectors
 from ..extractor.section_extractor import extract as extract_page
+from ..reporter.html_template import render_html
+from ..reporter.pdf_export import html_to_pdf
+from ..reporter.report_builder import build_report_dict
 from ..utils.url_validator import InvalidURLError, validate_url
 
 router = APIRouter()
@@ -226,6 +229,39 @@ def get_screenshot(
     if not abs_path.exists():
         raise HTTPException(status_code=404, detail="Screenshot file missing")
     return FileResponse(abs_path, media_type="image/png")
+
+
+@router.get("/scan/{scan_id}/export")
+async def export_scan(
+    scan_id: str,
+    format: str = Query("json", pattern="^(json|pdf|html)$"),
+    db: Session = Depends(get_db),
+) -> Response:
+    scan = db.get(Scan, scan_id)
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+    if scan.status != ScanStatus.completed:
+        raise HTTPException(status_code=409, detail=f"Scan is {scan.status.value}; export requires a completed scan")
+
+    report = build_report_dict(scan)
+    short_id = scan_id[:8]
+
+    if format == "json":
+        return JSONResponse(
+            report,
+            headers={"Content-Disposition": f'attachment; filename="deceptitech-{short_id}.json"'},
+        )
+
+    html = render_html(report)
+    if format == "html":
+        return Response(content=html, media_type="text/html; charset=utf-8")
+
+    pdf_bytes = await html_to_pdf(html)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="deceptitech-{short_id}.pdf"'},
+    )
 
 
 @router.get("/history", response_model=HistoryResponse)

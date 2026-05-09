@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import {
+  exportURL,
   getDetections,
   getScan,
   screenshotURL,
@@ -100,6 +101,30 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
           <p className="mt-3 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
             {scan.error_message}
           </p>
+        )}
+        {isDone && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a
+              href={exportURL(id, "pdf")}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              <span aria-hidden>📄</span> Download PDF
+            </a>
+            <a
+              href={exportURL(id, "json")}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              <span aria-hidden>{ }</span> Download JSON
+            </a>
+            <a
+              href={exportURL(id, "html")}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              <span aria-hidden>🔗</span> Open print view
+            </a>
+          </div>
         )}
       </header>
 

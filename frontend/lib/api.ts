@@ -92,3 +92,7 @@ export async function deleteScan(id: string): Promise<void> {
     throw new Error(`HTTP ${r.status}: ${body || r.statusText}`);
   }
 }
+
+export function exportURL(id: string, format: "json" | "pdf" | "html"): string {
+  return `${API_BASE}/scan/${id}/export?format=${format}`;
+}
