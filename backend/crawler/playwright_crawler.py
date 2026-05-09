@@ -3,15 +3,13 @@ from pathlib import Path
 
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import async_playwright
+from playwright_stealth import Stealth
 
-# A real Chrome user-agent string. The previous "DeceptiTechBot/0.1" UA caused
-# Akamai / Cloudflare-protected sites to refuse the connection at the HTTP/2
-# layer (net::ERR_HTTP2_PROTOCOL_ERROR). DeceptiTech is a research crawler,
-# not stealth scraping — but identifying as the underlying Chromium engine
-# (which is what we actually are) sidesteps anti-bot stacks that only check
-# the UA string.
+# A real Chrome user-agent string. We pair this with Stealth's default
+# navigator.platform = 'Win32' to keep the impersonation internally consistent
+# (Mac UA + Win32 platform would be a tell).
 DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 NAV_TIMEOUT_MS = 30_000
@@ -26,6 +24,13 @@ LAUNCH_ARGS = [
     "--disable-http2",
     "--disable-blink-features=AutomationControlled",
 ]
+
+# playwright-stealth patches: navigator.webdriver, navigator.plugins,
+# navigator.hardware_concurrency, WebGL vendor/renderer, sec-ch-ua,
+# chrome.app / chrome.csi / chrome.loadTimes, iframe contentWindow, and more.
+# Defaults match real Chrome on Windows. Module-level singleton — safe to
+# re-use across requests; nothing in here holds connection state.
+_STEALTH = Stealth()
 
 
 @dataclass
@@ -49,6 +54,7 @@ async def crawl_url(url: str, screenshot_dir: Path) -> CrawlResult:
             user_agent=DEFAULT_USER_AGENT,
             viewport=VIEWPORT,
         )
+        await _STEALTH.apply_stealth_async(context)
         page = await context.new_page()
         try:
             try:
