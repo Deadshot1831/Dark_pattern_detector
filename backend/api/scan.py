@@ -1,11 +1,13 @@
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from ..classifier.llm_classifier import enrich as llm_enrich
@@ -51,6 +53,24 @@ class DetectionView(BaseModel):
     explanation: str
     suggested_fix: str
     method: str
+
+
+class HistoryItem(BaseModel):
+    scan_id: str
+    url: str
+    page_title: Optional[str] = None
+    started_at: datetime
+    completed_at: Optional[datetime] = None
+    status: str
+    total_patterns_found: Optional[int] = None
+    overall_severity: Optional[str] = None
+
+
+class HistoryResponse(BaseModel):
+    items: List[HistoryItem]
+    total: int
+    page: int
+    limit: int
 
 
 def _to_response(scan: Scan) -> ScanResponse:
@@ -205,6 +225,54 @@ def get_screenshot(
     if not abs_path.exists():
         raise HTTPException(status_code=404, detail="Screenshot file missing")
     return FileResponse(abs_path, media_type="image/png")
+
+
+@router.get("/history", response_model=HistoryResponse)
+def list_history(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> HistoryResponse:
+    total = db.query(Scan).count()
+    items = (
+        db.query(Scan)
+        .order_by(desc(Scan.started_at))
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    return HistoryResponse(
+        items=[
+            HistoryItem(
+                scan_id=s.id,
+                url=s.url,
+                page_title=s.page_title,
+                started_at=s.started_at,
+                completed_at=s.completed_at,
+                status=s.status.value,
+                total_patterns_found=s.total_patterns_found,
+                overall_severity=s.overall_severity.value if s.overall_severity else None,
+            )
+            for s in items
+        ],
+        total=total,
+        page=page,
+        limit=limit,
+    )
+
+
+@router.delete("/scan/{scan_id}", status_code=204)
+def delete_scan(scan_id: str, db: Session = Depends(get_db)) -> Response:
+    scan = db.get(Scan, scan_id)
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+    db.delete(scan)  # cascades to detected_patterns via the relationship
+    db.commit()
+    # remove screenshot/html artifacts on disk
+    artifact_dir = STORAGE_DIR / "screenshots" / scan_id
+    if artifact_dir.exists():
+        shutil.rmtree(artifact_dir, ignore_errors=True)
+    return Response(status_code=204)
 
 
 @router.get("/health")

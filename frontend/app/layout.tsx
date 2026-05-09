@@ -22,7 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span className="grid h-7 w-7 place-items-center rounded-md bg-zinc-900 text-sm text-white">D</span>
               DeceptiTech
             </Link>
-            <span className="text-xs text-zinc-500">Dark Pattern Detector</span>
+            <nav className="flex items-center gap-5 text-sm">
+              <Link href="/" className="text-zinc-600 hover:text-zinc-900">New scan</Link>
+              <Link href="/history" className="text-zinc-600 hover:text-zinc-900">History</Link>
+            </nav>
           </div>
         </header>
         <main className="mx-auto w-full max-w-5xl px-6 py-10">{children}</main>

@@ -62,3 +62,33 @@ export function getDetections(id: string): Promise<Detection[]> {
 export function screenshotURL(id: string, kind: "full_page" | "viewport"): string {
   return `${API_BASE}/scan/${id}/screenshot/${kind}`;
 }
+
+export interface HistoryItem {
+  scan_id: string;
+  url: string;
+  page_title: string | null;
+  started_at: string;
+  completed_at: string | null;
+  status: ScanStatus;
+  total_patterns_found: number | null;
+  overall_severity: Severity | null;
+}
+
+export interface HistoryResponse {
+  items: HistoryItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export function getHistory(page = 1, limit = 20): Promise<HistoryResponse> {
+  return jsonFetch<HistoryResponse>(`/history?page=${page}&limit=${limit}`);
+}
+
+export async function deleteScan(id: string): Promise<void> {
+  const r = await fetch(`${API_BASE}/scan/${id}`, { method: "DELETE", cache: "no-store" });
+  if (!r.ok && r.status !== 204) {
+    const body = await r.text().catch(() => "");
+    throw new Error(`HTTP ${r.status}: ${body || r.statusText}`);
+  }
+}
