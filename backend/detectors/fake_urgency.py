@@ -10,7 +10,7 @@ import re
 from typing import List
 
 from ..extractor.section_extractor import ExtractedPage
-from .base import BaseDetector, DetectionResult
+from .base import BaseDetector, DetectionResult, snippet_around
 
 URGENCY_PATTERNS: List[tuple[str, float, str]] = [
     (r"\b(ends?\s+in|expires?\s+in|deal\s+ends|sale\s+ends|hurry\s+sale\s+ends)\b", 0.9, "high"),
@@ -63,11 +63,9 @@ class FakeUrgencyDetector(BaseDetector):
                 if key in seen_keys:
                     continue
                 seen_keys.add(key)
-                start = max(m.start() - 25, 0)
-                end = min(m.end() + 25, len(text))
                 out.append(DetectionResult(
                     pattern_type=self.pattern_type,
-                    evidence_text=text[start:end].strip(),
+                    evidence_text=snippet_around(text, m.start(), m.end()),
                     evidence_selector="",
                     confidence=conf,
                     severity=sev,

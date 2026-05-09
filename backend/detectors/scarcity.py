@@ -9,7 +9,7 @@ import re
 from typing import List
 
 from ..extractor.section_extractor import ExtractedPage
-from .base import BaseDetector, DetectionResult
+from .base import BaseDetector, DetectionResult, snippet_around
 
 SCARCITY_PATTERNS: List[tuple[str, float, str]] = [
     # Low-stock (numeric)
@@ -48,11 +48,9 @@ class ScarcityDetector(BaseDetector):
                 if key in seen_keys:
                     continue
                 seen_keys.add(key)
-                start = max(m.start() - 25, 0)
-                end = min(m.end() + 35, len(text))
                 out.append(DetectionResult(
                     pattern_type=self.pattern_type,
-                    evidence_text=text[start:end].strip(),
+                    evidence_text=snippet_around(text, m.start(), m.end()),
                     evidence_selector="",
                     confidence=conf,
                     severity=sev,
