@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { startScan } from "@/lib/api";
+import { Button } from "./Button";
 
 export function ScanForm() {
   const router = useRouter();
@@ -32,22 +33,39 @@ export function ScanForm() {
           type="text"
           required
           inputMode="url"
+          autoComplete="url"
           placeholder="https://example.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={busy}
-          className="flex-1 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 disabled:opacity-60"
+          className={[
+            "h-12 flex-1 rounded-lg px-4 text-base",
+            "bg-card backdrop-blur-md border border-border text-foreground",
+            "placeholder:text-muted-foreground placeholder:font-mono placeholder:text-sm",
+            "transition-all duration-200",
+            "focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20",
+            "focus:shadow-[0_0_24px_rgb(245_158_11_/_0.10)]",
+            "disabled:opacity-60",
+          ].join(" ")}
         />
-        <button
-          type="submit"
-          disabled={busy || !url.trim()}
-          className="rounded-lg bg-zinc-900 px-6 py-3 text-base font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy ? "Starting…" : "Scan website"}
-        </button>
+        <Button type="submit" disabled={busy || !url.trim()} size="lg">
+          {busy ? (
+            <>
+              <span className="h-2 w-2 animate-pulse rounded-full bg-accent-foreground/70" />
+              Starting
+            </>
+          ) : (
+            <>
+              Scan website <span aria-hidden>→</span>
+            </>
+          )}
+        </Button>
       </div>
       {error && (
-        <p className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+        <p
+          role="alert"
+          className="mt-3 rounded-md bg-rose-500/10 px-3 py-2 text-sm text-rose-300 ring-1 ring-inset ring-rose-500/25"
+        >
           {error}
         </p>
       )}
