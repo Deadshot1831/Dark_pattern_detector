@@ -3,11 +3,14 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-DB_PATH = PROJECT_ROOT / "deceptitech.db"
+from ..config import DATABASE_PATH
+
+# Ensure the parent directory exists (matters when DATABASE_PATH points to a
+# mounted volume that may not be pre-populated).
+Path(DATABASE_PATH).parent.mkdir(parents=True, exist_ok=True)
 
 engine = create_engine(
-    f"sqlite:///{DB_PATH}",
+    f"sqlite:///{DATABASE_PATH}",
     connect_args={"check_same_thread": False},
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -12,7 +12,10 @@ Dark pattern detection system. Given a public website URL, it crawls the page in
 | 4 | 5 rule-based detectors (urgency, scarcity, confirmshaming, preselected, cookie) | ✅ |
 | 5 | Ollama LLM enrichment for confirmshaming variants | ✅ |
 | 7 | Next.js dashboard | ✅ |
-| 6 / 8 / 9 / 10 | Report export, history, evaluation, deployment | ⏳ |
+| 8 | Scan history page + delete | ✅ |
+| 9 | Detector evaluation (precision/recall/F1) — see `evaluation/EVALUATION.md` | ✅ |
+| 10 | Dockerfile + Vercel-ready frontend | ✅ |
+| 6 | PDF / JSON report export | ⏳ |
 
 ## Setup
 
@@ -68,7 +71,56 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 | `GET`  | `/scan/{id}/detections` | List of detected patterns with evidence + suggested fixes |
 | `GET`  | `/scan/{id}/extracted` | Raw extracted page sections (debug) |
 | `GET`  | `/scan/{id}/screenshot/{full_page\|viewport}` | PNG |
+| `DELETE` | `/scan/{id}` | Remove scan + detections + screenshots |
+| `GET`  | `/history?page=&limit=` | Paginated scan list |
 | `GET`  | `/health` | Health check |
+
+## Deployment
+
+The backend can't run on Vercel (Playwright + Chromium is ~280 MB,
+Vercel's function size cap is 50 MB on Hobby; scans also exceed the 10 s
+timeout). The shipping recipe is **Vercel for the frontend + a
+container host for the backend**.
+
+### Environment variables (backend)
+
+| Var | Default | Notes |
+|---|---|---|
+| `PORT` | `8000` | Most container hosts inject this. |
+| `ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated. Set to your Vercel URL in prod. |
+| `DATABASE_PATH` | `./deceptitech.db` | Point at a mounted volume for persistence. |
+| `STORAGE_DIR` | `./storage` | Holds screenshots + LLM cache. Mount a volume. |
+| `OLLAMA_HOST` | `http://localhost:11434` | If unreachable, LLM pass is skipped — rule pipeline still works. |
+| `OLLAMA_MODEL` | `llama3.1:8b` | Must be pulled in your Ollama instance. |
+
+### Backend on Railway / Render / Fly.io
+
+1. Push this repo to GitHub.
+2. Create a new service from the repo. The platform auto-detects the
+   `Dockerfile` at the repo root.
+3. Mount a persistent volume at `/app/storage` (Railway: "Volumes" tab;
+   Render: "Disks"; Fly: `flyctl volumes create`).
+4. Set environment variables: `ALLOWED_ORIGINS=https://<your-app>.vercel.app`
+   and `DATABASE_PATH=/app/storage/deceptitech.db`.
+5. Deploy. Health-check path: `/health`.
+
+Local Docker test:
+
+```bash
+docker build -t deceptitech-backend .
+docker run -p 8000:8000 -v "$(pwd)/storage:/app/storage" deceptitech-backend
+```
+
+### Frontend on Vercel
+
+1. In Vercel, "Import Project" → pick this repo.
+2. Set the root directory to `frontend/` (Vercel asks for this).
+3. Set the env var `NEXT_PUBLIC_API_URL` to your backend's public URL
+   (e.g. `https://deceptitech-backend.up.railway.app`).
+4. Deploy. Vercel auto-detects Next.js, no further config needed.
+
+After both are live, update `ALLOWED_ORIGINS` on the backend to include
+the Vercel URL so the browser will accept the API responses.
 
 ## Layout
 

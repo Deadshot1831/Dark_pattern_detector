@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.scan import router as scan_router
+from .config import ALLOWED_ORIGINS
 from .db.database import init_db
 
 
@@ -17,7 +18,7 @@ app = FastAPI(title="DeceptiTech API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

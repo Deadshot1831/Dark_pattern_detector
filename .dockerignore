@@ -1,0 +1,33 @@
+# VCS
+.git/
+.gitignore
+
+# Python local env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local DB and scan artefacts (the container creates these fresh under
+# /app/storage; mount a volume there for persistence)
+deceptitech.db
+*.sqlite
+*.sqlite3
+storage/
+
+# Frontend lives in its own deployment (Vercel) — don't ship it inside the
+# backend image.
+frontend/
+
+# Test fixtures / dev images
+dark-pattern-popup-example-1024x604.png
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Eval output (regenerable)
+evaluation/EVALUATION.md

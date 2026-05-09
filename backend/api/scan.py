@@ -11,6 +11,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from ..classifier.llm_classifier import enrich as llm_enrich
+from ..config import STORAGE_DIR
 from ..crawler.playwright_crawler import crawl_url
 from ..db.database import SessionLocal, get_db
 from ..db.models import DetectedPattern, Scan, ScanStatus, Severity
@@ -20,8 +21,8 @@ from ..extractor.section_extractor import extract as extract_page
 from ..utils.url_validator import InvalidURLError, validate_url
 
 router = APIRouter()
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-STORAGE_DIR = PROJECT_ROOT / "storage"
+STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+(STORAGE_DIR / "screenshots").mkdir(parents=True, exist_ok=True)
 
 
 class ScanCreateRequest(BaseModel):

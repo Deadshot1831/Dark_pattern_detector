@@ -10,9 +10,9 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from ..config import OLLAMA_MODEL
+from ..config import OLLAMA_MODEL, STORAGE_DIR
 
-CACHE_DIR = Path(__file__).resolve().parent.parent.parent / "storage" / "llm_cache"
+CACHE_DIR = STORAGE_DIR / "llm_cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
